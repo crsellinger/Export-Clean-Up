@@ -107,14 +107,41 @@ def cleanup_data(df: pd.DataFrame):
     """
     Perform data cleanup operations on the DataFrame.
     """
+
+    for index, row in df.iterrows():
+        if str(row['Primary Deceased']) == "True":
+            df.drop(index, inplace=True)
+        if str(row['Primary Address Country']) != "US":
+            df.drop(index, inplace=True)
+        if str(row['Secondary Deceased']) == "True":
+            # If the secondary is deceased, we want to keep the record but clear out the secondary fields
+            df.at[index, 'Secondary Nickname'] = ''
+            df.at[index, 'Secondary Last Name'] = ''
+            df.at[index, 'Secondary Title'] = ''
+            df.at[index, 'Secondary Deceased'] = ''
+            df.at[index, 'Secondary Email Address'] = ''
+            df.at[index, 'Secondary Individual Id'] = ''
+            df.at[index, 'Secondary First Name'] = ''
+            df.at[index, 'Secondary Middle Name'] = ''
+            df.at[index, 'Secondary Suffix'] = ''
+            df.at[index, 'Secondary Pre-Marriage Name'] = ''
+            df.at[index, 'Secondary Phone Number'] = ''
+
     # Always output to download folder
     with pd.ExcelWriter(Path.home() / 'Downloads' / 'cleaned_data.xlsx', engine='xlsxwriter') as writer:
         df.to_excel(writer, sheet_name="Sheet 1", index=False)
         workbook = writer.book
         worksheet = writer.sheets["Sheet 1"]
+        currency_format = workbook.add_format({'num_format': '$#,##0.00'})
 
-        #freeze the first row
+        # Freeze the first row
         worksheet.freeze_panes(1, 0)
+
+        # Format giving columns as currency, Col P as default
+        worksheet.set_column('P:P', None, currency_format)
+
+        # Resize columns to fit content
+        worksheet.autofit()
 
     # Opens the output file in the default application (Excel)
     # os.startfile(Path.home() / 'Downloads' / 'cleaned_data.xlsx')
@@ -123,7 +150,8 @@ def cleanup_data(df: pd.DataFrame):
     subprocess.Popen(f'explorer /select,"{Path.home() / "Downloads" / "cleaned_data.xlsx"}"', shell=True)
 
 def main():
-    df = gui_read_file()
+    df = read_file(r"C:\Users\csellinger\Downloads\Export Test File for CleanUp.csv")
+    # df = gui_read_file()
     cleanup_data(df)
 
 if __name__ == "__main__":
