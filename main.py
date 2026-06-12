@@ -10,6 +10,7 @@
 #
 ###################################################################
 
+import operator
 import sys
 import pandas as pd
 from tkinter import Tk, filedialog, messagebox, StringVar
@@ -91,11 +92,15 @@ def read_file(input_file: StringVar) -> pd.DataFrame:
             else:
                 file_path = os.path.join(os.path.dirname(__file__), input_file)
                 print(f"Resolved file path: {file_path}")
-            
+
             if file_path.endswith('.xlsx'):
                 df = pd.read_excel(file_path)
+                df.attrs['filename'] = os.path.basename(file_path)
             else:
                 df = pd.read_csv(file_path)
+                df.attrs['filename'] = os.path.basename(file_path).rsplit('.', 1)[0] + '_cleaned.xlsx'
+
+            print(df.attrs['filename'])
 
             return df
 
@@ -109,26 +114,66 @@ def cleanup_data(df: pd.DataFrame):
     """
 
     for index, row in df.iterrows():
-        if str(row['Primary Deceased']) == "True":
-            df.drop(index, inplace=True)
-        if str(row['Primary Address Country']) != "US":
-            df.drop(index, inplace=True)
-        if str(row['Secondary Deceased']) == "True":
-            # If the secondary is deceased, we want to keep the record but clear out the secondary fields
-            df.at[index, 'Secondary Nickname'] = ''
-            df.at[index, 'Secondary Last Name'] = ''
-            df.at[index, 'Secondary Title'] = ''
-            df.at[index, 'Secondary Deceased'] = ''
-            df.at[index, 'Secondary Email Address'] = ''
-            df.at[index, 'Secondary Individual Id'] = ''
-            df.at[index, 'Secondary First Name'] = ''
-            df.at[index, 'Secondary Middle Name'] = ''
-            df.at[index, 'Secondary Suffix'] = ''
-            df.at[index, 'Secondary Pre-Marriage Name'] = ''
-            df.at[index, 'Secondary Phone Number'] = ''
+        if df.get('Primary Deceased') is not None:
+            if str(row['Primary Deceased']) == "True":
+                df.drop(index, inplace=True)
+        if df.get('Primary Address Country') is not None:
+            if not operator.xor(str(row['Primary Address Country']) == "US", str(row['Primary Address Country']) == "USA"):
+                df.drop(index, inplace=True)
+        if df.get('Secondary Deceased') is not None:
+            if str(row['Secondary Deceased']) == "True":
+                # If the secondary is deceased, we want to keep the record but clear out the secondary fields
+                if df.get('Secondary Nickname') is not None:
+                    df.at[index, 'Secondary Nickname'] = ''
+                if df.get('Secondary Last Name') is not None:
+                    df.at[index, 'Secondary Last Name'] = ''
+                if df.get('Secondary Title') is not None:
+                    df.at[index, 'Secondary Title'] = ''
+                if df.get('Secondary Suffix') is not None:
+                    df.at[index, 'Secondary Suffix'] = ''
+                if df.get('Secondary Email Address') is not None:
+                    df.at[index, 'Secondary Email Address'] = ''
+                if df.get('Secondary Individual Id') is not None:
+                    df.at[index, 'Secondary Individual Id'] = ''
+                if df.get('Secondary First Name') is not None:
+                    df.at[index, 'Secondary First Name'] = ''
+                if df.get('Secondary Middle Name') is not None:
+                    df.at[index, 'Secondary Middle Name'] = ''
+                if df.get('Secondary Suffix') is not None:
+                    df.at[index, 'Secondary Suffix'] = ''
+                if df.get('Secondary Pre-Marriage Name') is not None:
+                    df.at[index, 'Secondary Pre-Marriage Name'] = ''
+                if df.get('Secondary Phone Number') is not None:
+                    df.at[index, 'Secondary Phone Number'] = ''
+                df.at[index, 'Secondary Deceased'] = ''
+        if df.get('Secondary Title') is not None:
+            if str(row['Secondary Title']) == "":
+                # If the secondary is ghost (denoted with no title), we want to keep the record but clear out the secondary fields
+                if df.get('Secondary Nickname') is not None:
+                    df.at[index, 'Secondary Nickname'] = ''
+                if df.get('Secondary Last Name') is not None:
+                    df.at[index, 'Secondary Last Name'] = ''
+                if df.get('Secondary Title') is not None:
+                    df.at[index, 'Secondary Title'] = ''
+                if df.get('Secondary Suffix') is not None:
+                    df.at[index, 'Secondary Suffix'] = ''
+                if df.get('Secondary Email Address') is not None:
+                    df.at[index, 'Secondary Email Address'] = ''
+                if df.get('Secondary Individual Id') is not None:
+                    df.at[index, 'Secondary Individual Id'] = ''
+                if df.get('Secondary First Name') is not None:
+                    df.at[index, 'Secondary First Name'] = ''
+                if df.get('Secondary Middle Name') is not None:
+                    df.at[index, 'Secondary Middle Name'] = ''
+                if df.get('Secondary Suffix') is not None:
+                    df.at[index, 'Secondary Suffix'] = ''
+                if df.get('Secondary Pre-Marriage Name') is not None:
+                    df.at[index, 'Secondary Pre-Marriage Name'] = ''
+                if df.get('Secondary Phone Number') is not None:
+                    df.at[index, 'Secondary Phone Number'] = ''
 
     # Always output to download folder
-    with pd.ExcelWriter(Path.home() / 'Downloads' / 'cleaned_data.xlsx', engine='xlsxwriter') as writer:
+    with pd.ExcelWriter(Path.home() / 'Downloads' / df.attrs['filename'], engine='xlsxwriter') as writer:
         df.to_excel(writer, sheet_name="Sheet 1", index=False)
         workbook = writer.book
         worksheet = writer.sheets["Sheet 1"]
@@ -144,14 +189,16 @@ def cleanup_data(df: pd.DataFrame):
         worksheet.autofit()
 
     # Opens the output file in the default application (Excel)
-    # os.startfile(Path.home() / 'Downloads' / 'cleaned_data.xlsx')
+    # os.startfile(Path.home() / 'Downloads' / df.attrs['filename'])
 
     # Opens the output file in explorer and selects it
-    subprocess.Popen(f'explorer /select,"{Path.home() / "Downloads" / "cleaned_data.xlsx"}"', shell=True)
+    subprocess.Popen(f'explorer /select,"{Path.home() / "Downloads" / df.attrs["filename"]}', shell=True)
 
 def main():
-    df = read_file(r"C:\Users\csellinger\Downloads\Export Test File for CleanUp.csv")
-    # df = gui_read_file()
+    # Testing
+    # df = read_file(r"C:\Users\csellinger\Downloads\Export Test File for CleanUp.csv")
+
+    df = gui_read_file()
     cleanup_data(df)
 
 if __name__ == "__main__":
