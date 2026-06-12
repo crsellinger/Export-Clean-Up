@@ -133,8 +133,16 @@ def cleanup_data(df: pd.DataFrame, currency: StringVar) -> None:
             # Format giving columns as currency, Col P as default
             worksheet.set_column(currency.get(), None, currency_format)
 
+            # No border and bold headers
+            format = workbook.add_format({
+                'bold': True,
+                'border':0})
+            for col, value in enumerate(df.columns.values):
+                worksheet.write(0, col, value, format)
+
             # Resize columns to fit content
             worksheet.autofit()
+
     except Exception as e:
         messagebox.showerror("Error writing file\n", f"An error occurred while saving the output file:\n{e}")
         sys.exit(0)
